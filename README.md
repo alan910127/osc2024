@@ -21,22 +21,25 @@ This is the course project/assignments for "Operating System Capstone," 2024 Spr
 ## Environment Setup
 
 > [!NOTE]
-> Rust uses [LLVM](https://llvm.org/) for its compiler backend, we can get the toolchains needed for cross compiling by simply typing a few commands.
+> Rust uses [LLVM](https://llvm.org/) as its compiler backend, making cross-compilation straightforward with the same set of commands after installing the toolchains.
 
-1. Make sure you have [Rust](https://rust-lang.org/) 1.76.0 or above installed
+1. **Install Rust:**
 
-2. Install the target for Raspberry PI 3B+
+   Make sure you have [Rust](https://rust-lang.org/) installed on your system. For this project, we require the following Rust toolchains:
+
+   - Channel: `nightly-2024-04-04`
+   - Target: `aarch64-unknown-none-softfloat`
+   - Components: `llvm-tools`
+
+   `rustup` should recognize the settings in [`rust-toolchain.toml`](./rust-toolchain.toml) and automatically install the required toolchains for you.
+
+2. **Install tools for building the kernel image:**
+
+   In addition to Rust, you'll need tools like `rust-objcopy` for building the carno image.
+   You can install these tools using Cargo.
 
    ```sh
-   rustup target add aarch64-unknown-none-softfloat
-   ```
-
-3. Install tools for building the kernel image.
-
-   ```sh
-   rustup component add llvm-tools
-
-   # Or `cargo binstall cargo-binutils` if you prefer
+   # Alternatively, you can replace the following command with `cargo binstall`.
    cargo install cargo-binutils
    ```
 
