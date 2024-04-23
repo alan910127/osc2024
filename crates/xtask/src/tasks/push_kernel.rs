@@ -6,15 +6,12 @@ use std::{
     time::Duration,
 };
 
-use clap::Parser;
-use color_eyre::eyre::{eyre, Report, Result, WrapErr};
 use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 use serial2::SerialPort;
 
-/// uartpush is a utility designed to push the kernel through a UART-connected serial device for loading by uartload.
-#[derive(Debug, Parser)]
-#[command(version, author, about, long_about = None)]
-struct Args {
+/// Push the kernel through a UART-connected serial device for loading by uartload.
+#[derive(Debug, clap::Args)]
+pub struct Args {
     /// Path to the kernel image to push
     #[clap(short, long)]
     image: PathBuf,
@@ -24,7 +21,7 @@ struct Args {
     device: PathBuf,
 
     /// Baud rate to use for the serial device
-    #[clap(short, long, default_value = "115200")]
+    #[clap(short, long, default_value_t = 115200)]
     baud_rate: u32,
 
     /// Attach to the serial device after pushing the kernel
@@ -32,77 +29,33 @@ struct Args {
     attach: bool,
 }
 
-fn main() -> Result<()> {
-    install_tracing();
-    color_eyre::install()?;
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
 
-    let args = Args::parse();
+    #[error("kernel image is too large to be pushed: {0}")]
+    KernelImageTooLarge(u64),
 
-    let mut serial = match open_serial(&args.device, args.baud_rate) {
-        Ok(port) => port,
-        Err(e) => {
-            tracing::error!(
-                serial = %args.device.display(),
-                error = %e,
-                "Failed to open serial device",
-            );
-            return Err(e.wrap_err("Failed to open serial device"));
-        }
-    };
+    #[error("did not received 'OK' from device")]
+    NoOkReceived,
+}
+
+type Result<T> = std::result::Result<T, Error>;
+
+pub fn run_push_kernel(args: Args) -> Result<()> {
+    let mut serial = open_serial(&args.device, args.baud_rate)?;
     tracing::info!(serial = %args.device.display(), "Serial connected");
 
-    let image = match File::open(&args.image) {
-        Ok(file) => file,
-        Err(e) => {
-            tracing::error!(
-                image = %args.image.display(),
-                error = %e,
-                "Failed to open kernel image"
-            );
-            return Err(Report::new(e).wrap_err("Failed to open kernel image"));
-        }
-    };
+    let image = File::open(&args.image)?;
     let image_size = image.metadata()?.len();
     let Ok(image_size) = image_size.try_into() else {
         // Downcast from u64 to u32, the only possible error is if the image is too large
-        tracing::error!(
-            image = %args.image.display(),
-            size = image_size,
-            "Kernel image is too large to be pushed",
-        );
-        return Err(eyre!("Kernel image size is too large"));
+        return Err(Error::KernelImageTooLarge(image_size));
     };
 
-    // Read out all the data sent from the device
-    let mut buffer = [0u8; 1024];
-    let mut timeout_retries = 3;
-
-    loop {
-        match serial.read(&mut buffer) {
-            Ok(0) => {}
-            Ok(n) => {
-                stdout().write_all(&buffer[..n])?;
-                stdout().flush()?;
-            }
-            Err(e) => {
-                match e.kind() {
-                    std::io::ErrorKind::TimedOut => {
-                        if timeout_retries == 0 {
-                            // Maybe we missed the start of the message
-                            // So we'll just start sending the kernel
-                            break;
-                        }
-                        timeout_retries -= 1;
-                        continue;
-                    }
-                    _ => {
-                        tracing::error!(error = %e, "Error reading from serial");
-                        return Err(Report::new(e).wrap_err("Error reading from serial"));
-                    }
-                };
-            }
-        };
-    }
+    // Read out all remaining data from serial to prevent erroneous things from happening
+    read_all(&mut serial)?;
 
     tracing::info!(
         kernel = %args.image.display(),
@@ -110,15 +63,8 @@ fn main() -> Result<()> {
         "Pushing kernel",
     );
 
-    if let Err(e) = send_size(image_size, &mut serial) {
-        tracing::error!("Failed to send kernel size: {}", e);
-        return Result::Err(e).wrap_err("Failed to send kernel size");
-    };
-
-    if let Err(e) = push_kernel(image_size, image, &mut serial) {
-        tracing::error!("Failed to push kernel: {}", e);
-        return Result::Err(e).wrap_err("Failed to push kernel");
-    };
+    send_size(image_size, &mut serial)?;
+    push_kernel(image_size, image, &mut serial)?;
 
     if !args.attach {
         tracing::info!("Kernel pushed successfully, exiting...");
@@ -130,6 +76,7 @@ fn main() -> Result<()> {
 
     Ok(())
 }
+
 fn wait_for_serial(serial: &Path) {
     if serial.exists() {
         return;
@@ -154,25 +101,51 @@ fn open_serial(serial: &Path, baud_rate: u32) -> Result<SerialPort> {
     Ok(port)
 }
 
+fn read_all(serial: &mut SerialPort) -> Result<()> {
+    let mut buffer = [0u8; 1024];
+    let mut timeout_retries = 3;
+
+    loop {
+        match serial.read(&mut buffer) {
+            Ok(0) => {}
+            Ok(n) => {
+                stdout().write_all(&buffer[..n])?;
+                stdout().flush()?;
+            }
+            Err(e) => {
+                match e.kind() {
+                    std::io::ErrorKind::TimedOut => {
+                        if timeout_retries == 0 {
+                            // Maybe we missed the start of the message
+                            // So we'll just start sending the kernel
+                            return Ok(());
+                        }
+                        timeout_retries -= 1;
+                        continue;
+                    }
+                    _ => {
+                        tracing::error!(error = %e, "Error reading from serial");
+                        return Err(e.into());
+                    }
+                };
+            }
+        };
+    }
+}
+
 fn send_size(image_size: u32, serial: &mut SerialPort) -> Result<()> {
     tracing::info!(size = image_size, "Pushing kernel size to device");
-    serial
-        .write_all(&image_size.to_le_bytes())
-        .wrap_err("Failed to write image size")?;
+    serial.write_all(&image_size.to_le_bytes())?;
 
     let mut buffer = [0u8; 1024];
     let mut read = 0;
     while read < 2 {
-        read += serial
-            .read(&mut buffer[read..])
-            .wrap_err("Failed to read confirmation from device")?;
+        read += serial.read(&mut buffer[read..])?;
     }
 
     if &buffer[..2] != b"OK" {
         tracing::error!("Kernel push failed, did not receive 'OK' from device");
-        return Err(eyre!(
-            "Kernel push failed, did not receive 'OK' from device"
-        ));
+        return Err(Error::NoOkReceived);
     };
 
     stdout().write_all(&buffer[2..])?;
@@ -193,15 +166,11 @@ fn push_kernel(image_size: u32, mut image: impl Read, serial: &mut SerialPort) -
 
     loop {
         let mut buffer = [0u8; 1024];
-        let read = image
-            .read(&mut buffer)
-            .wrap_err("Failed to read the kernel image")?;
+        let read = image.read(&mut buffer)?;
         if read == 0 {
             break;
         }
-        serial
-            .write_all(&buffer[..read])
-            .wrap_err("Failed to write the kernel image to device")?;
+        serial.write_all(&buffer[..read])?;
         pb.inc(read as u64);
     }
 
@@ -254,17 +223,4 @@ fn forward_terminal(serial: SerialPort) {
     }
 
     target_to_host.join().unwrap();
-}
-
-fn install_tracing() {
-    use tracing_subscriber::prelude::*;
-    use tracing_subscriber::{fmt, EnvFilter};
-
-    let fmt_layer = fmt::layer();
-    let filter_layer = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
-
-    tracing_subscriber::registry()
-        .with(filter_layer)
-        .with(fmt_layer)
-        .init();
 }

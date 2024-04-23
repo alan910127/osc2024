@@ -1,5 +1,5 @@
-[build]
-target = "aarch64-unknown-none-softfloat"
+[alias]
+xtask = "run --quiet --manifest-path ./crates/xtask/Cargo.toml --"
 
 [cargo-new]
 vcs = "none"
