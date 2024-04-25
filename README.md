@@ -43,12 +43,30 @@ This is the course project/assignments for "Operating System Capstone," 2024 Spr
    cargo install cargo-binutils
    ```
 
+## How to Run
+
+This repository follows the [`cargo-xtask`](https://github.com/matklad/cargo-xtask) pattern, enabling you to execute necessary tasks with a single command: `cargo xtask` in your terminal.
+
+There are four subcommands available under the `cargo xtask` command:
+
+- `check`: Performs formatting and linting checks.
+- `build`: Compiles the binary and executes post-processing steps (if any).
+- `qemu`: Launches the target in a QEMU emulation environment.
+- `push-kernel`: Transfers the kernel through a UART-connected serial device for loading by uartload.
+
+For instance, to experience the full booting process from the bootloader, follow these steps:
+
+1. Create [your CPIO archive file](https://nycu-caslab.github.io/OSC2024/labs/lab2.html#new-ascii-format-cpio-archive) and download [the device tree binary for Raspberry Pi 3b+](https://github.com/raspberrypi/firmware/raw/master/boot/bcm2710-rpi-3-b-plus.dtb).
+2. Execute `cargo xtask qemu uartload` in your terminal.
+3. Open another terminal session and run `cargo xtask build kernel`.
+4. Issue `cargo xtask push-kernel --image ./target/aarch64-unknown-none-softfloat/release/rpi3-kernel.img --device /dev/pts/N`, replacing `/dev/pts/N` with the appropriate device path as shown in your QEMU output.
+5. The operating system should be running after pushing the kernel.
+
 ## Dev Notes
 
-This repository contains three entrypoints that might be great to start from:
+This repository contains the following entrypoints that might be great to start from:
 
 - [`uartload`](crates/uartload)
-- [`uartpush`](crates/uartpush)
 - [`kernel`](crates/kernel)
 
 ## Lab Descriptions
