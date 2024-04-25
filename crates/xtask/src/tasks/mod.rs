@@ -5,7 +5,7 @@ use std::{
     collections::HashMap,
     ffi::OsStr,
     path::{Path, PathBuf},
-    process::{Command, Stdio},
+    process::Command,
 };
 
 use clap::ValueEnum;
@@ -141,6 +141,8 @@ impl TaskRunner {
     }
 
     pub fn run_push_kernel(&self, args: push_kernel::Args) -> Result<()> {
+        self.run_build(BinTarget::Kernel)?;
+
         push_kernel::run_push_kernel(args)?;
 
         Ok(())
