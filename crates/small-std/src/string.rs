@@ -5,9 +5,15 @@ use super::vec::{Vec, VEC_MAX_SIZE};
 #[derive(Debug)]
 pub struct String(Vec<u8>);
 
+impl Default for String {
+    fn default() -> Self {
+        Self(Vec::new())
+    }
+}
+
 impl String {
     pub fn new() -> Self {
-        Self(Vec::new())
+        Default::default()
     }
 
     pub fn push(&mut self, c: char) {

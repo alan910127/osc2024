@@ -6,6 +6,9 @@ pub struct MMIODerefWrapper<T> {
 }
 
 impl<T> MMIODerefWrapper<T> {
+    /// # Safety
+    ///
+    /// - The caller must ensure the base address provided is valid.
     pub const unsafe fn new(start_addr: usize) -> Self {
         Self {
             start_addr,

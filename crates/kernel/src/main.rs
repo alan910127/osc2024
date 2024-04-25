@@ -73,7 +73,7 @@ fn main() -> ! {
 
     if cpio_start_addr == 0 {
         println!("No initrd found. Halting...");
-        loop {}
+        panic!("no initrd found");
     }
     println!("[3] CPIO loaded at: {:#x}", cpio_start_addr);
 

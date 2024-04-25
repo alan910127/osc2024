@@ -31,7 +31,7 @@ macro_rules! hex_to_usize {
 
 impl CpioNewcHeader {
     fn is_valid(&self) -> bool {
-        &self.magic == CPIO_NEWC_MAGIC
+        self.magic == CPIO_NEWC_MAGIC
     }
 
     fn namesize(&self) -> usize {

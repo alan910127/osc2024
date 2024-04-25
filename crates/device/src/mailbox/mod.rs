@@ -19,7 +19,6 @@ pub struct Mailbox {
 impl MailboxInner {
     const CHANNEL_MASK: u32 = 0b1111;
 
-    /// SAFETY: The user msut ensure to provide a correct MMIO start address
     const unsafe fn new(mmio_start_addr: usize) -> Self {
         Self {
             registers: Registers::new(mmio_start_addr),
@@ -163,7 +162,9 @@ impl MailboxInner {
 impl Mailbox {
     const COMPATIBLE: &'static str = "Mailbox";
 
-    /// SAFETY: The user msut ensure to provide a correct MMIO start address
+    /// # Safety
+    ///
+    /// - The user must ensure to provide a correct MMIO start address
     pub const unsafe fn new(mmio_start_addr: usize) -> Self {
         Self {
             inner: Mutex::new(MailboxInner::new(mmio_start_addr)),

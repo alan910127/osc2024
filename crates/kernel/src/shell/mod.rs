@@ -75,7 +75,7 @@ impl<'a> Shell<'a> {
             ("help", _) => self.help(),
             ("", _) => {}
             (cmd, args) => {
-                let command = self.commands.iter().filter(|c| c.name() == cmd).next();
+                let command = self.commands.iter().find(|c| c.name() == cmd);
                 command.map_or_else(
                     || println!("{}: command not found", cmd),
                     |c| c.execute(args),

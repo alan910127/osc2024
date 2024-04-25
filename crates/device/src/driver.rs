@@ -13,6 +13,7 @@ pub trait DeviceDriver {
     fn compatible(&self) -> &'static str;
 
     /// Called by the kernel to bring up the device.
+    #[allow(clippy::missing_safety_doc)]
     unsafe fn init(&self) -> Result<(), &'static str> {
         Ok(())
     }
@@ -56,6 +57,12 @@ impl DeviceDriverDescriptor {
 
 pub fn driver_manager() -> &'static DriverManager {
     &DRIVER_MANAGER
+}
+
+impl Default for DriverManager {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl DriverManager {

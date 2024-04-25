@@ -84,11 +84,11 @@ struct FdtReserveEntry {
 #[repr(u32)]
 #[derive(Debug)]
 pub enum StructureBlockToken {
-    FdtBeginNode = 0x0000_0001,
-    FdtEndNode = 0x0000_0002,
-    FdtProp = 0x0000_0003,
-    FdtNop = 0x0000_0004,
-    FdtEnd = 0x0000_0009,
+    BeginNode = 0x0000_0001,
+    EndNode = 0x0000_0002,
+    Prop = 0x0000_0003,
+    Nop = 0x0000_0004,
+    End = 0x0000_0009,
 }
 
 impl TryFrom<u32> for StructureBlockToken {
@@ -96,13 +96,11 @@ impl TryFrom<u32> for StructureBlockToken {
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
         match value {
-            x if x == StructureBlockToken::FdtBeginNode as u32 => {
-                Ok(StructureBlockToken::FdtBeginNode)
-            }
-            x if x == StructureBlockToken::FdtEndNode as u32 => Ok(StructureBlockToken::FdtEndNode),
-            x if x == StructureBlockToken::FdtProp as u32 => Ok(StructureBlockToken::FdtProp),
-            x if x == StructureBlockToken::FdtNop as u32 => Ok(StructureBlockToken::FdtNop),
-            x if x == StructureBlockToken::FdtEnd as u32 => Ok(StructureBlockToken::FdtEnd),
+            x if x == StructureBlockToken::BeginNode as u32 => Ok(StructureBlockToken::BeginNode),
+            x if x == StructureBlockToken::EndNode as u32 => Ok(StructureBlockToken::EndNode),
+            x if x == StructureBlockToken::Prop as u32 => Ok(StructureBlockToken::Prop),
+            x if x == StructureBlockToken::Nop as u32 => Ok(StructureBlockToken::Nop),
+            x if x == StructureBlockToken::End as u32 => Ok(StructureBlockToken::End),
             _ => Err(value),
         }
     }

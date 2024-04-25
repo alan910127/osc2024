@@ -17,7 +17,6 @@ pub struct Watchdog {
 }
 
 impl WatchdogInner {
-    /// SAFETY: The user msut ensure to provide a correct MMIO start address
     pub const unsafe fn new(mmio_start_addr: usize) -> Self {
         Self {
             registers: Registers::new(mmio_start_addr),
@@ -38,7 +37,9 @@ impl WatchdogInner {
 impl Watchdog {
     const COMPATIBLE: &'static str = "Watchdog";
 
-    /// SAFETY: The user msut ensure to provide a correct MMIO start address
+    /// # Safety
+    ///
+    /// - The user must ensure to provide a correct MMIO start address
     pub const unsafe fn new(mmio_start_addr: usize) -> Self {
         Self {
             inner: Mutex::new(WatchdogInner::new(mmio_start_addr)),

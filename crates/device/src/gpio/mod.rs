@@ -16,7 +16,6 @@ pub struct GPIO {
 }
 
 impl GPIOInner {
-    /// SAFETY: The user msut ensure to provide a correct MMIO start address
     pub const unsafe fn new(mmio_start_addr: usize) -> Self {
         Self {
             registers: Registers::new(mmio_start_addr),
@@ -51,6 +50,9 @@ impl GPIOInner {
 impl GPIO {
     pub const COMPATIBLE: &'static str = "GPIO";
 
+    /// # Safety
+    ///
+    /// - The user must ensure to provide a correct MMIO start address
     pub const unsafe fn new(mmio_start_addr: usize) -> Self {
         Self {
             inner: Mutex::new(GPIOInner::new(mmio_start_addr)),

@@ -11,15 +11,24 @@ where
     size: usize,
 }
 
+impl<T> Default for Vec<T>
+where
+    T: Default + Copy,
+{
+    fn default() -> Self {
+        Self {
+            data: [Default::default(); VEC_MAX_SIZE],
+            size: 0,
+        }
+    }
+}
+
 impl<T> Vec<T>
 where
     T: Default + Copy,
 {
     pub fn new() -> Self {
-        Self {
-            data: [Default::default(); VEC_MAX_SIZE],
-            size: 0,
-        }
+        Default::default()
     }
 
     pub fn push(&mut self, value: T) {

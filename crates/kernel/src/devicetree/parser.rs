@@ -70,15 +70,15 @@ impl Iterator for Iter {
             };
             self.address += 4;
             match token {
-                StructureBlockToken::FdtNop => continue,
-                StructureBlockToken::FdtEndNode => return Some(Ok(DeviceTreeToken::EndNode)),
-                StructureBlockToken::FdtEnd => return None,
-                StructureBlockToken::FdtBeginNode => {
+                StructureBlockToken::Nop => continue,
+                StructureBlockToken::EndNode => return Some(Ok(DeviceTreeToken::EndNode)),
+                StructureBlockToken::End => return None,
+                StructureBlockToken::BeginNode => {
                     let name = unsafe { parse_string(self.address) };
                     self.address = align_to(self.address + name.len() + 1, 4);
                     return Some(Ok(DeviceTreeToken::BeginNode { name }));
                 }
-                StructureBlockToken::FdtProp => {
+                StructureBlockToken::Prop => {
                     let prop = unsafe { parse_property(self.address, self.strings_address) };
                     self.address = align_to(
                         self.address + core::mem::size_of::<FdtProperty>() + prop.size as usize,
@@ -98,13 +98,15 @@ impl Iterator for Iter {
 
 #[inline(always)]
 fn align_to(addr: usize, align: usize) -> usize {
-    let offset = (addr as *const u8).align_offset(align) as usize;
+    let offset = (addr as *const u8).align_offset(align);
     addr + offset
 }
 
 /// Parse a null-terminatd string from the given address.
+///
 /// # Safety
-/// The caller must ensure that the address is valid and points to a null-terminated string.
+///
+/// - The caller must ensure that the address is valid and points to a null-terminated string.
 unsafe fn parse_string(address: usize) -> &'static str {
     let name_start = address as *const u8;
     let name_len = {
@@ -125,8 +127,10 @@ struct DeviceTreeEntry<'a> {
 }
 
 /// Parse a FDT_PROP entry from the given address.
+///
 /// # Safety
-/// The caller must ensure that the address is valid and points to a valid property.
+///
+/// - The caller must ensure that the address is valid and points to a valid property.
 unsafe fn parse_property(address: usize, strings_address: usize) -> DeviceTreeEntry<'static> {
     let prop = &*(address as *const FdtProperty);
     let name = parse_string(strings_address + prop.nameoff() as usize);

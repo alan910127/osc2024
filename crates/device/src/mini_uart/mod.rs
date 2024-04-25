@@ -17,7 +17,6 @@ pub struct MiniUart {
 }
 
 impl MiniUartInner {
-    /// SAFETY: The user msut ensure to provide a correct MMIO start address
     pub const unsafe fn new(mmio_start_addr: usize) -> Self {
         Self {
             registers: Registers::new(mmio_start_addr),
@@ -103,7 +102,9 @@ impl core::fmt::Write for MiniUartInner {
 impl MiniUart {
     pub const COMPATIBLE: &'static str = "Mini UART";
 
-    /// SAFETY: The user msut ensure to provide a correct MMIO start address
+    /// # Safety
+    ///
+    /// - The user must ensure to provide a correct MMIO start address
     pub const unsafe fn new(mmio_start_addr: usize) -> Self {
         Self {
             inner: Mutex::new(MiniUartInner::new(mmio_start_addr)),

@@ -18,7 +18,6 @@ pub fn panic_prevent_reenter() {
 #[inline(always)]
 pub fn wait_forever() -> ! {
     loop {
-        // SAFETY: This is a safe operation.
         unsafe { asm!("wfe") };
     }
 }

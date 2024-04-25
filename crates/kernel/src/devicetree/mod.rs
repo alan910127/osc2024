@@ -37,6 +37,7 @@ impl DeviceTree {
     /// Create a new DeviceTree instance.
     ///
     /// # Safety
+    ///
     /// - The caller must ensure that the base address is valid.
     pub unsafe fn new(base_address: usize) -> Self {
         Self { base_address }
@@ -80,13 +81,10 @@ impl DeviceTree {
 
         let mut tokens = parser::parse_tokens(dt_struct_start, dt_struct_end, dt_strings_start);
         while let Some(token) = tokens.next() {
-            let token = token.map_err(|e| DeviceTreeError::ParseTokenError(e))?;
-            match token {
-                DeviceTreeToken::BeginNode { name } => {
-                    let it = Iter::new(tokens.clone());
-                    traverse_fn(name, it);
-                }
-                _ => {}
+            let token = token.map_err(DeviceTreeError::ParseTokenError)?;
+            if let DeviceTreeToken::BeginNode { name } = token {
+                let it = Iter::new(tokens);
+                traverse_fn(name, it);
             }
         }
 

@@ -28,6 +28,7 @@ global_asm!(
 pub static BOOT_CORE_ID: u64 = 0;
 
 #[no_mangle]
+#[allow(clippy::missing_safety_doc)]
 pub unsafe fn _start_rust() -> ! {
     asm!("mov {}, x0", out(reg) DEVICETREE_START_ADDR);
 
