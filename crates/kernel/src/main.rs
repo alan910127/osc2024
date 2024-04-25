@@ -23,7 +23,7 @@ use crate::devicetree::DeviceTreeEntryValue;
 const INITRD_DEVICETREE_NODE: &str = "chosen";
 const INITRD_DEVICETREE_PROP: &str = "linux,initrd-start";
 
-unsafe fn kernel_init() -> ! {
+unsafe fn kernel_init(devicetree_start_addr: usize) -> ! {
     if let Err(e) = driver::register_drivers() {
         panic!("Failed to initialize driver subsystem: {}", e);
     }
@@ -31,10 +31,10 @@ unsafe fn kernel_init() -> ! {
     device::driver::driver_manager().init_drivers();
 
     // Finnaly go from unsafe to safe 🎉
-    main()
+    main(devicetree_start_addr)
 }
 
-fn main() -> ! {
+fn main(devicetree_start_addr: usize) -> ! {
     println!(
         "[0] {} version {}",
         env!("CARGO_PKG_NAME"),
@@ -44,13 +44,11 @@ fn main() -> ! {
     println!("[1] Drivers loaded:");
     device::driver::driver_manager().enumerate();
 
-    println!("[2] DTB loaded at: {:#x}", unsafe {
-        boot::DEVICETREE_START_ADDR
-    });
+    println!("[2] DTB loaded at: {:#x}", devicetree_start_addr);
 
     let mut cpio_start_addr = 0;
 
-    let devicetree = unsafe { DeviceTree::new(boot::DEVICETREE_START_ADDR) };
+    let devicetree = unsafe { DeviceTree::new(devicetree_start_addr) };
     if let Err(e) = devicetree.traverse(|node, props| {
         if node != INITRD_DEVICETREE_NODE {
             return;

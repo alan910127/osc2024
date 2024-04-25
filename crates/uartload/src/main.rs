@@ -4,12 +4,11 @@
 
 mod drivers;
 
-use core::arch::{asm, global_asm};
+use core::arch::global_asm;
 use panic_wait as _;
 use small_std::{fmt::print::console::console, println};
 
 const RPI3_DEFAULT_LOAD_ADDR: *mut u8 = 0x80000 as *mut u8;
-static mut DEVICETREE_START_ADDR: usize = 0;
 
 const BANNER: &str = r#"
   __  _____   ___  ________   ____  ___   ___ 
@@ -29,19 +28,17 @@ pub static BOOT_CORE_ID: u64 = 0;
 
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
-pub unsafe fn _start_rust() -> ! {
-    asm!("mov {}, x0", out(reg) DEVICETREE_START_ADDR);
-
+pub unsafe fn _start_rust(devicetree_start_addr: usize) -> ! {
     if let Err(e) = drivers::register_drivers() {
         panic!("Failed to initialize driver subsystem: {}", e);
     }
 
     device::driver::driver_manager().init_drivers();
 
-    main();
+    main(devicetree_start_addr);
 }
 
-fn main() -> ! {
+fn main(devicetree_start_addr: usize) -> ! {
     println!("{}", BANNER);
 
     println!("[uartload] startup complete.");
@@ -78,6 +75,6 @@ fn main() -> ! {
 
     unsafe {
         let kernel: fn(usize) -> ! = core::mem::transmute(RPI3_DEFAULT_LOAD_ADDR);
-        kernel(DEVICETREE_START_ADDR);
+        kernel(devicetree_start_addr);
     }
 }
