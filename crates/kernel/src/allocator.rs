@@ -8,11 +8,11 @@ extern "C" {
 }
 
 /// A simple allocator that allocates memory from a fixed-size arena.
-struct ArenaAllocator {
+struct BumpAllocator {
     current_offset: Mutex<usize>,
 }
 
-impl ArenaAllocator {
+impl BumpAllocator {
     const fn new() -> Self {
         Self {
             current_offset: Mutex::new(0),
@@ -57,18 +57,9 @@ impl ArenaAllocator {
     }
 }
 
-unsafe impl GlobalAlloc for ArenaAllocator {
+unsafe impl GlobalAlloc for BumpAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let (start, end) = self.compute_alloc_region(layout);
-        println!(
-            "Allocating {:?} at {:p} - {:p}",
-            layout, start as *const u8, end as *const u8
-        );
-        println!(
-            "Heap start: {:p}, end: {:p}",
-            self.heap_start() as *const u8,
-            self.heap_end() as *const u8
-        );
         if !self.is_region_valid(start, end) {
             return core::ptr::null_mut();
         }
@@ -83,4 +74,4 @@ unsafe impl GlobalAlloc for ArenaAllocator {
 }
 
 #[global_allocator]
-static ALLOCATOR: ArenaAllocator = ArenaAllocator::new();
+static ALLOCATOR: BumpAllocator = BumpAllocator::new();
