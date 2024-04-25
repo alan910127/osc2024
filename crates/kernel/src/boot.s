@@ -8,6 +8,12 @@
 .section .text._start
 
 _start:
+    // Only proceed if the core executes in EL2
+    // If it is not in EL2 then we are in a big trouble right now
+    mrs     x1, CurrentEL
+    cmp     x1, {CONST_CURRENTEL_EL2}
+    b.ne    .L_parking_loop
+
     // Read cpu id to x1
     mrs     x1, MPIDR_EL1
     and     x1, x1, {CONST_CORE_ID_MASK}

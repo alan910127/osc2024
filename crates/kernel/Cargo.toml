@@ -9,3 +9,5 @@ edition = "2021"
 small-std = { version = "0.1.0", path = "../small-std" }
 panic-wait = { version = "0.1.0", path = "../panic-wait" }
 device = { version = "0.1.0", path = "../device" }
+aarch64-cpu = "9.4.0"
+tock-registers = "0.8.1"

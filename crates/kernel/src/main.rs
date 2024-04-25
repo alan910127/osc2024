@@ -12,18 +12,20 @@ mod devicetree;
 mod driver;
 mod shell;
 
+use aarch64_cpu::registers::CurrentEL;
 use cpio::CpioArchive;
 use devicetree::DeviceTree;
 use panic_wait as _;
 use shell::commands;
 use small_std::println;
+use tock_registers::interfaces::Readable;
 
-use crate::devicetree::DeviceTreeEntryValue;
+use crate::{boot::DEVICETREE_START_ADDR, devicetree::DeviceTreeEntryValue};
 
 const INITRD_DEVICETREE_NODE: &str = "chosen";
 const INITRD_DEVICETREE_PROP: &str = "linux,initrd-start";
 
-unsafe fn kernel_init(devicetree_start_addr: usize) -> ! {
+unsafe fn kernel_init() -> ! {
     if let Err(e) = driver::register_drivers() {
         panic!("Failed to initialize driver subsystem: {}", e);
     }
@@ -31,10 +33,10 @@ unsafe fn kernel_init(devicetree_start_addr: usize) -> ! {
     device::driver::driver_manager().init_drivers();
 
     // Finnaly go from unsafe to safe 🎉
-    main(devicetree_start_addr)
+    main()
 }
 
-fn main(devicetree_start_addr: usize) -> ! {
+fn main() -> ! {
     println!(
         "[0] {} version {}",
         env!("CARGO_PKG_NAME"),
@@ -44,11 +46,11 @@ fn main(devicetree_start_addr: usize) -> ! {
     println!("[1] Drivers loaded:");
     device::driver::driver_manager().enumerate();
 
-    println!("[2] DTB loaded at: {:#x}", devicetree_start_addr);
+    println!("[2] DTB loaded at: {:#x}", unsafe { DEVICETREE_START_ADDR });
 
     let mut cpio_start_addr = 0;
 
-    let devicetree = unsafe { DeviceTree::new(devicetree_start_addr) };
+    let devicetree = unsafe { DeviceTree::new(DEVICETREE_START_ADDR) };
     if let Err(e) = devicetree.traverse(|node, props| {
         if node != INITRD_DEVICETREE_NODE {
             return;
@@ -75,7 +77,10 @@ fn main(devicetree_start_addr: usize) -> ! {
     }
     println!("[3] CPIO loaded at: {:#x}", cpio_start_addr);
 
-    println!("[4] Echoing input now");
+    let current_el = CurrentEL.read(CurrentEL::EL);
+    println!("[4] Current Exception Level: {}", current_el);
+
+    println!("[5] Echoing input now");
 
     let cpio = unsafe { CpioArchive::new(cpio_start_addr) };
     let mut shell = shell::Shell::new();
