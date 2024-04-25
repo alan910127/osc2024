@@ -1,6 +1,7 @@
 pub mod commands;
 
-use small_std::{fmt::print::console::console, print, println, string::String};
+use alloc::{string::String, vec::Vec};
+use small_std::{fmt::print::console::console, print, println};
 
 pub trait ShellCommand {
     fn name(&self) -> &str;
@@ -10,7 +11,7 @@ pub trait ShellCommand {
 
 pub struct Shell<'a> {
     buf: String,
-    commands: alloc::vec::Vec<&'a dyn ShellCommand>,
+    commands: Vec<&'a dyn ShellCommand>,
 }
 
 impl<'a> Shell<'a> {
