@@ -101,6 +101,18 @@ Tasks:
 - [x] **Bootloader Self Relocation**: Add self-relocation feature to the bootloader so it does not need to specify the kernel starting address.
 - [x] **DeivceTree**: Integrate DeviceTree support for hardware configuration.
 
+### Lab 3: Exception and Interrupt ([website](https://nycu-caslab.github.io/OSC2024/labs/lab3.html))
+
+Get familiar with exception levels, exceptions, and interrupts.
+
+Tasks:
+
+- [ ] **Exception**: Switch between different exception levels and implement exception handlers.
+- [ ] **Interrupt**: Enable and handle the core timer's interrupt.
+- [ ] **Rpi3's Peripheral Interrupt**: Implement asynchronous UART read/write by interrupt handlers.
+- [ ] **Timer Multiplexing**: Implement the non-blocking shell command `setTimeout` which prints message after specified delay.
+- [ ] **Concurrent I/O Devices Handling**: Implement a preemptive task queue for interrupts.
+
 ## Reference
 
 - [rust-embedded/rust-raspberrypi-OS-tutorials](https://github.com/rust-embedded/rust-raspberrypi-OS-tutorials)
