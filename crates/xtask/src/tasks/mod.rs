@@ -152,8 +152,6 @@ impl TaskRunner {
             command.envs(envs);
         }
         command
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
             .current_dir(&self.root)
             .args(shlex::split(args).expect("invalid cargo command"));
 
