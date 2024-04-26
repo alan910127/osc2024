@@ -46,7 +46,7 @@ fn prepare_el2_to_el1(stack_end_addr: u64) {
     );
 
     // Set exception return address to kernel_init()
-    ELR_EL2.set(crate::kernel_init as u64);
+    ELR_EL2.set(crate::kernel_init as *const () as u64);
 
     // Set up stack pointer for EL1.
     SP_EL1.set(stack_end_addr);

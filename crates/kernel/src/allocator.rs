@@ -1,6 +1,6 @@
 use core::alloc::{GlobalAlloc, Layout};
 
-use small_std::{println, sync::Mutex};
+use small_std::sync::Mutex;
 
 extern "C" {
     pub static _heap_start: usize;
