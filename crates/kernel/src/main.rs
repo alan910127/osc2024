@@ -10,15 +10,14 @@ mod boot;
 mod cpio;
 mod devicetree;
 mod driver;
+mod exception;
 mod shell;
 
-use aarch64_cpu::registers::CurrentEL;
 use cpio::CpioArchive;
 use devicetree::DeviceTree;
 use panic_wait as _;
 use shell::commands;
 use small_std::println;
-use tock_registers::interfaces::Readable;
 
 use crate::{boot::DEVICETREE_START_ADDR, devicetree::DeviceTreeEntryValue};
 
@@ -38,15 +37,21 @@ unsafe fn kernel_init() -> ! {
 
 fn main() -> ! {
     println!(
-        "[0] {} version {}",
+        "{} version {}",
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION")
     );
 
-    println!("[1] Drivers loaded:");
+    let (_, privilege_level) = exception::current_privilege_level();
+    println!("Current privilege level: {}", privilege_level);
+
+    println!("Exception handling state:");
+    exception::asynchronous::print_state();
+
+    println!("Drivers loaded:");
     device::driver::driver_manager().enumerate();
 
-    println!("[2] DTB loaded at: {:#x}", unsafe { DEVICETREE_START_ADDR });
+    println!("DTB loaded at: {:#x}", unsafe { DEVICETREE_START_ADDR });
 
     let mut cpio_start_addr = 0;
 
@@ -75,12 +80,9 @@ fn main() -> ! {
         println!("No initrd found. Halting...");
         panic!("no initrd found");
     }
-    println!("[3] CPIO loaded at: {:#x}", cpio_start_addr);
+    println!("CPIO loaded at: {:#x}", cpio_start_addr);
 
-    let current_el = CurrentEL.read(CurrentEL::EL);
-    println!("[4] Current Exception Level: {}", current_el);
-
-    println!("[5] Echoing input now");
+    println!("Echoing input now");
 
     let cpio = unsafe { CpioArchive::new(cpio_start_addr) };
     let mut shell = shell::Shell::new();
