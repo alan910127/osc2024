@@ -1,11 +1,10 @@
 use super::ShellCommand;
-use crate::cpio::CpioArchive;
-use crate::driver;
+use crate::{cpio::CpioArchive, driver};
 use small_std::{print, println};
 
-pub struct HelloCommand;
+pub struct Hello;
 
-impl ShellCommand for HelloCommand {
+impl ShellCommand for Hello {
     fn name(&self) -> &str {
         "hello"
     }
@@ -19,9 +18,9 @@ impl ShellCommand for HelloCommand {
     }
 }
 
-pub struct RebootCommand;
+pub struct Reboot;
 
-impl ShellCommand for RebootCommand {
+impl ShellCommand for Reboot {
     fn name(&self) -> &str {
         "reboot"
     }
@@ -35,9 +34,9 @@ impl ShellCommand for RebootCommand {
     }
 }
 
-pub struct InfoCommand;
+pub struct Info;
 
-impl ShellCommand for InfoCommand {
+impl ShellCommand for Info {
     fn name(&self) -> &str {
         "info"
     }
@@ -64,17 +63,17 @@ impl ShellCommand for InfoCommand {
     }
 }
 
-pub struct LsCommand<'a> {
+pub struct Ls<'a> {
     cpio: &'a CpioArchive,
 }
 
-impl<'a> LsCommand<'a> {
+impl<'a> Ls<'a> {
     pub fn new(cpio: &'a CpioArchive) -> Self {
         Self { cpio }
     }
 }
 
-impl<'a> ShellCommand for LsCommand<'a> {
+impl<'a> ShellCommand for Ls<'a> {
     fn name(&self) -> &str {
         "ls"
     }
@@ -90,50 +89,41 @@ impl<'a> ShellCommand for LsCommand<'a> {
     }
 }
 
-pub struct CatCommand<'a> {
+pub struct Cat<'a> {
     pub cpio: &'a CpioArchive,
 }
 
-impl<'a> CatCommand<'a> {
+impl<'a> Cat<'a> {
     pub fn new(cpio: &'a CpioArchive) -> Self {
         Self { cpio }
     }
 }
 
-impl<'a> ShellCommand for CatCommand<'a> {
+impl<'a> ShellCommand for Cat<'a> {
     fn name(&self) -> &str {
         "cat"
     }
 
     fn help(&self) -> &str {
-        "print content of a file in the initramfs"
+        "cat <file>...\t\tprint content of a file in the initramfs"
     }
 
     fn execute(&self, args: &str) {
-        let mut has_args = false;
-        for file in args.split_whitespace() {
-            has_args = true;
-
-            let mut found = false;
-            for f in self.cpio.files() {
-                if f.filename != file {
-                    continue;
-                }
-
-                for c in f.content {
-                    print!("{}", *c as char);
-                }
-                found = true;
-                break;
-            }
-
-            if !found {
-                println!("cat: {}: No such file or directory", file);
-            }
-        }
-
-        if !has_args {
+        let mut filenames = args.split_whitespace().peekable();
+        if filenames.peek().is_none() {
             println!("Usage: cat <file>...");
+            return;
         }
+
+        filenames.for_each(|filename| {
+            match self.cpio.files().find(|f| f.filename == filename) {
+                Some(file) => {
+                    file.content.iter().for_each(|c| print!("{}", *c as char));
+                }
+                None => {
+                    println!("cat: {}: No such file or directory", filename);
+                }
+            };
+        });
     }
 }

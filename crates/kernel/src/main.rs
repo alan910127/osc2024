@@ -86,11 +86,12 @@ fn main() -> ! {
 
     let cpio = unsafe { CpioArchive::new(cpio_start_addr) };
     let mut shell = shell::Shell::new();
-    let ls = commands::LsCommand::new(&cpio);
-    let cat = commands::CatCommand::new(&cpio);
+    let ls = commands::Ls::new(&cpio);
+    let cat = commands::Cat::new(&cpio);
     shell.register(&commands::HelloCommand);
-    shell.register(&commands::RebootCommand);
-    shell.register(&commands::InfoCommand);
+    shell.register(&commands::Hello);
+    shell.register(&commands::Reboot);
+    shell.register(&commands::Info);
     shell.register(&ls);
     shell.register(&cat);
     shell.run_loop();
