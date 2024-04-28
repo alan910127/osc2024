@@ -22,17 +22,20 @@ pub fn current_privilege_level() -> (PrivilegeLevel, &'static str) {
     }
 }
 
+/// # Safety
+///
+/// - The caller must ensure the exception return address is a valid executable address
 #[inline(always)]
-pub fn prepare_el2_to_el1(stack_end_addr: u64, exception_return_addr: u64) {
+pub unsafe fn transition_from_el2_to_el1(stack_end_addr: u64, exception_return_addr: u64) -> ! {
     // The execution state for EL1 is AArch64.
     // The execution state for EL0 is determined by the current value of PSTATE.nRW when executing at EL0.
     HCR_EL2.write(HCR_EL2::RW::EL1IsAarch64);
 
     SPSR_EL2.write(
-        SPSR_EL2::D::Masked // watchpoint, breakpoint, and software step exceptions => for debuggers?
-            + SPSR_EL2::A::Masked // SError interrupt
-            + SPSR_EL2::F::Masked // FIQ interrupt
-            + SPSR_EL2::I::Masked // IRQ
+        SPSR_EL2::D::Masked
+            + SPSR_EL2::A::Masked
+            + SPSR_EL2::I::Masked
+            + SPSR_EL2::F::Masked
             + SPSR_EL2::M::EL1h, // where the exception is taken from
     );
 
@@ -40,4 +43,8 @@ pub fn prepare_el2_to_el1(stack_end_addr: u64, exception_return_addr: u64) {
 
     // Set up stack pointer for EL1.
     SP_EL1.set(stack_end_addr);
+
+    // *return* to EL1
+    asm::eret();
+}
 }

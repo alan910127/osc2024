@@ -1,4 +1,3 @@
-use aarch64_cpu::asm;
 use core::arch::global_asm;
 
 use crate::exception;
@@ -22,13 +21,10 @@ pub unsafe extern "C" fn _start_rust(
 ) -> ! {
     DEVICETREE_START_ADDR = devicetree_start_addr as usize;
 
-    // Since we are not going back to EL2, here we just use the same stack address directly.
-    exception::prepare_el2_to_el1(
+    exception::transition_from_el2_to_el1(
+        // Since we are not going back to EL2, here we just use the same stack address directly.
         phys_boot_core_stack_end_exclusive_addr,
         // Set exception return address to kernel_init()
         crate::kernel_init as *const () as u64,
     );
-
-    // *return* to EL1. So we will be running kerenl_init() in EL1.
-    asm::eret();
 }
