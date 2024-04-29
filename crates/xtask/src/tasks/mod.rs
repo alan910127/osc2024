@@ -1,3 +1,5 @@
+pub mod build_img;
+mod macros;
 pub mod push_kernel;
 pub mod qemu;
 
@@ -25,6 +27,9 @@ pub enum Error {
     CouldNotDetermineRepositoryRoot,
     #[error("failed to run command '{0}'")]
     CommandFailed(&'static str),
+
+    #[error("cannot run user program in QEMU")]
+    CannotRunUserProgramInQemu,
 }
 
 type Result<T> = std::result::Result<T, Error>;
@@ -33,10 +38,11 @@ pub struct TaskRunner {
     root: PathBuf,
 }
 
-#[derive(Debug, Clone, Copy, ValueEnum)]
+#[derive(Debug, Clone, Copy, ValueEnum, PartialEq)]
 pub enum BinTarget {
     Kernel,
     Uartload,
+    UserProgram,
 }
 
 impl BinTarget {
@@ -44,6 +50,7 @@ impl BinTarget {
         match self {
             BinTarget::Kernel => "kernel",
             BinTarget::Uartload => "uartload",
+            BinTarget::UserProgram => "user-program",
         }
     }
 
@@ -51,17 +58,9 @@ impl BinTarget {
         match self {
             BinTarget::Kernel => "rpi3-kernel.img",
             BinTarget::Uartload => "kernel8.img",
+            BinTarget::UserProgram => "user-program.img",
         }
     }
-}
-
-macro_rules! envs {
-    ($($key:expr => $value:expr),* $(,)?) => {{
-        #[allow(unused_mut)]
-        let mut map = ::std::collections::HashMap::new();
-        $(map.insert($key.into(), $value.into());)*
-        map
-    }};
 }
 
 impl TaskRunner {
@@ -82,57 +81,18 @@ impl TaskRunner {
         Ok(())
     }
 
-    pub fn run_build(&self, target: BinTarget) -> Result<()> {
-        self.cargo(
-            &format!(
-                "rustc --package={} --target={} --release",
-                target.as_str(),
-                TARGET_TRIPLE,
-            ),
-            Some(envs! {
-                "RUSTFLAGS" => format!(
-                    "-C target-cpu=cortex-a53 -C link-arg=--library-path={0}/crates/{1} -C link-arg=--script={1}.ld -D warnings",
-                    self.root.display(),
-                    target.as_str(),
-                )
-            }),
-        )?;
-
-        let release_dir = self.release_dir();
-        let elf = release_dir.join(target.as_str());
-        let output_img = release_dir.join(target.image_name());
-
-        let mut command = Command::new("rust-objcopy");
-        command
-            .arg("--strip-all")
-            .args(["-O", "binary"])
-            .arg(&elf)
-            .arg(&output_img);
-
-        let args = command
-            .get_args()
-            .filter_map(OsStr::to_str)
-            .collect::<Vec<_>>();
-        tracing::info!(
-            command = format!("rust-objcopy {}", args.join(" ")),
-            "Running"
-        );
-        if !command.status()?.success() {
-            return Err(Error::CommandFailed("rust-objcopy"));
-        }
-
-        let image_size = output_img.metadata()?.len();
-        tracing::info!(
-            image = %output_img.display(),
-            size = image_size,
-            "Image built"
-        );
+    pub fn run_build(&self, args: build_img::Args) -> Result<()> {
+        build_img::run_build(args, self.root.clone(), |args, envs| self.cargo(args, envs))?;
 
         Ok(())
     }
 
     pub fn run_qemu(&self, args: qemu::Args) -> Result<()> {
-        self.run_build(args.target)?;
+        if args.target == BinTarget::UserProgram {
+            return Err(Error::CannotRunUserProgramInQemu);
+        }
+
+        self.run_build(build_img::Args::new(args.target, args.debug))?;
 
         let kernel_path = self.release_dir().join(args.target.image_name());
         qemu::run_qemu(kernel_path, args)?;
@@ -141,7 +101,7 @@ impl TaskRunner {
     }
 
     pub fn run_push_kernel(&self, args: push_kernel::Args) -> Result<()> {
-        self.run_build(BinTarget::Kernel)?;
+        self.run_build(build_img::Args::new(BinTarget::Kernel, false))?;
 
         push_kernel::run_push_kernel(args)?;
 

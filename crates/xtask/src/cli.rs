@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 
 use crate::prelude::*;
-use crate::tasks::{push_kernel, qemu, BinTarget, TaskRunner};
+use crate::tasks::{build_img, push_kernel, qemu, TaskRunner};
 
 /// Easily execute automated tasks.
 ///
@@ -24,7 +24,7 @@ impl Cli {
 
         match cli.command {
             Commands::Check => runner.run_check()?,
-            Commands::Build { target } => runner.run_build(target)?,
+            Commands::Build(args) => runner.run_build(args)?,
             Commands::Qemu(args) => runner.run_qemu(args)?,
             Commands::PushKernel(args) => runner.run_push_kernel(args)?,
         };
@@ -38,9 +38,7 @@ enum Commands {
     /// Run formatting and linting checks
     Check,
     /// Build the binary and perform post-processing steps (if any)
-    Build {
-        target: BinTarget,
-    },
+    Build(build_img::Args),
     /// Run the target in a QEMU emulation environment
     Qemu(qemu::Args),
     PushKernel(push_kernel::Args),

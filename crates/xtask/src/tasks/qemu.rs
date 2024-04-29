@@ -8,7 +8,7 @@ pub struct Args {
 
     /// Expose port for attaching debugger
     #[arg(long)]
-    debug: bool,
+    pub debug: bool,
 
     /// Use stdio, or PTY if not specified
     #[arg(long)]

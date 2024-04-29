@@ -3,12 +3,13 @@ mod prelude;
 mod tasks;
 
 use crate::cli::Cli;
-use crate::prelude::*;
 
-fn main() -> Result<()> {
+fn main() {
     install_tracing();
 
-    Cli::parse_and_run()
+    if let Err(e) = Cli::parse_and_run() {
+        tracing::error!("task failed: {}", e);
+    };
 }
 
 fn install_tracing() {
