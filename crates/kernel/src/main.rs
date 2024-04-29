@@ -88,11 +88,12 @@ fn main() -> ! {
     let mut shell = shell::Shell::new();
     let ls = commands::Ls::new(&cpio);
     let cat = commands::Cat::new(&cpio);
-    shell.register(&commands::HelloCommand);
+    let exec = commands::Exec::new(&cpio);
     shell.register(&commands::Hello);
     shell.register(&commands::Reboot);
     shell.register(&commands::Info);
     shell.register(&ls);
     shell.register(&cat);
+    shell.register(&exec);
     shell.run_loop();
 }

@@ -1,6 +1,9 @@
 pub mod asynchronous;
 
-use aarch64_cpu::registers::{CurrentEL, ELR_EL2, HCR_EL2, SPSR_EL2, SP_EL1};
+use aarch64_cpu::{
+    asm,
+    registers::{CurrentEL, ELR_EL1, ELR_EL2, HCR_EL2, SPSR_EL1, SPSR_EL2, SP_EL0, SP_EL1},
+};
 use tock_registers::interfaces::{Readable, Writeable};
 
 pub enum PrivilegeLevel {
@@ -47,4 +50,23 @@ pub unsafe fn transition_from_el2_to_el1(stack_end_addr: u64, exception_return_a
     // *return* to EL1
     asm::eret();
 }
+
+/// # Safety
+///
+/// - The caller must ensure the exception return address is a valid executable address
+#[inline(always)]
+pub unsafe fn transition_from_el1_to_el0(stack_end_addr: u64, exception_return_addr: u64) -> ! {
+    SPSR_EL1.write(
+        SPSR_EL1::D::Masked
+            + SPSR_EL1::A::Masked
+            + SPSR_EL1::I::Masked
+            + SPSR_EL1::F::Masked
+            + SPSR_EL1::M::EL0t,
+    );
+
+    ELR_EL1.set(exception_return_addr);
+    SP_EL0.set(stack_end_addr);
+
+    // *return* to EL0
+    asm::eret();
 }

@@ -1,0 +1,7 @@
+[package]
+name = "user-program"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+panic-wait = { version = "0.1.0", path = "../panic-wait" }
