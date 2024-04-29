@@ -25,6 +25,8 @@ const INITRD_DEVICETREE_NODE: &str = "chosen";
 const INITRD_DEVICETREE_PROP: &str = "linux,initrd-start";
 
 unsafe fn kernel_init() -> ! {
+    exception::init_exception_handling();
+
     if let Err(e) = driver::register_drivers() {
         panic!("Failed to initialize driver subsystem: {}", e);
     }

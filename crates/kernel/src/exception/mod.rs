@@ -1,9 +1,11 @@
 pub mod asynchronous;
+mod handler;
 
 use aarch64_cpu::{
     asm,
     registers::{CurrentEL, ELR_EL1, ELR_EL2, HCR_EL2, SPSR_EL1, SPSR_EL2, SP_EL0, SP_EL1},
 };
+pub use handler::init_exception_handling;
 use tock_registers::interfaces::{Readable, Writeable};
 
 pub enum PrivilegeLevel {

@@ -3,6 +3,7 @@
 #![no_main]
 
 use core::{
+    arch::asm,
     fmt::Write,
     ptr::{read_volatile, write_volatile},
 };
@@ -18,8 +19,20 @@ const AUX_MU_LSR: *const u32 = (MMIO_BASE + 0x0021_5054) as _;
 pub extern "C" fn main() -> ! {
     println!("Hello from user program!");
 
-    #[allow(clippy::empty_loop)]
-    loop {}
+    unsafe {
+        asm!(
+            "    mov x0, 0",
+            "1:",
+            "    add x0, x0, 1",
+            "    svc 0",
+            "    cmp x0, 5",
+            "    blt 1b",
+            "1:",
+            "    b   1b",
+        );
+    };
+
+    unreachable!();
 }
 
 struct MiniUart;
